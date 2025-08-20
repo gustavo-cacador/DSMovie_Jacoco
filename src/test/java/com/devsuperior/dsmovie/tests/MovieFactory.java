@@ -10,8 +10,9 @@ public class MovieFactory {
 		return movie;
 	}
 	
-	public static MovieDTO createMovieDTO() {
+	public static MovieEntity createMovie(String title) {
 		MovieEntity movie = createMovieEntity();
-		return new MovieDTO(movie);
+		movie.setTitle(title);
+		return movie;
 	}
 }
