@@ -3,8 +3,10 @@ package com.devsuperior.dsmovie.services;
 import com.devsuperior.dsmovie.dto.MovieDTO;
 import com.devsuperior.dsmovie.entities.MovieEntity;
 import com.devsuperior.dsmovie.repositories.MovieRepository;
+import com.devsuperior.dsmovie.services.exceptions.DatabaseException;
 import com.devsuperior.dsmovie.services.exceptions.ResourceNotFoundException;
 import com.devsuperior.dsmovie.tests.MovieFactory;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -56,7 +59,15 @@ public class MovieServiceTests {
 
 		Mockito.when(movieRepository.save(any())).thenReturn(movie);
 
+		Mockito.when(movieRepository.getReferenceById(existingMovieId)).thenReturn(movie);
+		Mockito.when(movieRepository.getReferenceById(nonExistingMovieId)).thenThrow(EntityNotFoundException.class);
 
+		Mockito.when(movieRepository.existsById(existingMovieId)).thenReturn(true);
+		Mockito.when(movieRepository.existsById(dependentMovieId)).thenReturn(true);
+		Mockito.when(movieRepository.existsById(nonExistingMovieId)).thenReturn(false);
+
+		Mockito.doNothing().when(movieRepository).deleteById(existingMovieId);
+		Mockito.doThrow(DataIntegrityViolationException.class).when(movieRepository).deleteById(dependentMovieId);
 	}
 	
 	@Test
@@ -100,21 +111,43 @@ public class MovieServiceTests {
 	
 	@Test
 	public void updateShouldReturnMovieDTOWhenIdExists() {
+
+		MovieDTO result = movieService.update(existingMovieId, movieDTO);
+
+		Assertions.assertNotNull(result);
+		Assertions.assertEquals(result.getId(), existingMovieId);
+		Assertions.assertEquals(result.getTitle(), movieDTO.getTitle());
 	}
 	
 	@Test
 	public void updateShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			movieService.update(nonExistingMovieId, movieDTO);
+		});
 	}
 	
 	@Test
 	public void deleteShouldDoNothingWhenIdExists() {
+
+		Assertions.assertDoesNotThrow(() -> {
+			movieService.delete(existingMovieId);
+		});
 	}
 	
 	@Test
 	public void deleteShouldThrowResourceNotFoundExceptionWhenIdDoesNotExist() {
+
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			movieService.delete(nonExistingMovieId);
+		});
 	}
 	
 	@Test
 	public void deleteShouldThrowDatabaseExceptionWhenDependentId() {
+
+		Assertions.assertThrows(DatabaseException.class, () -> {
+			movieService.delete(dependentMovieId);
+		});
 	}
 }
