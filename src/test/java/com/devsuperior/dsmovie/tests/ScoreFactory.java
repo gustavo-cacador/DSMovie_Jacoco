@@ -11,7 +11,7 @@ public class ScoreFactory {
 	
 	public static ScoreEntity createScoreEntity() {
 		MovieEntity movie = MovieFactory.createMovieEntity();
-		UserEntity user = UserFactory.createUserEntity();
+		UserEntity user = UserFactory.createClientUser();
 		ScoreEntity score = new ScoreEntity();
 		
 		score.setMovie(movie);
